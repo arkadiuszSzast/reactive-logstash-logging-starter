@@ -15,16 +15,18 @@ public class UniqueIDGenerator {
 		MDC.clear();
 
 		List<String> requestIds = request.getHeaders().get(REQUEST_ID_HEADER_NAME);
-		if (requestIds == null)
+		if (requestIds == null) {
 			MDC.put(REQUEST_ID_HEADER_NAME, UUID.randomUUID().toString());
-		else
+		} else {
 			MDC.put(REQUEST_ID_HEADER_NAME, requestIds.get(0));
+		}
 
 		List<String> correlationIds = request.getHeaders().get(CORRELATION_ID_HEADER_NAME);
-		if (correlationIds == null)
+		if (correlationIds == null) {
 			MDC.put(CORRELATION_ID_HEADER_NAME, UUID.randomUUID().toString());
-		else
+		} else {
 			MDC.put(CORRELATION_ID_HEADER_NAME, correlationIds.get(0));
+		}
 	}
 
 }

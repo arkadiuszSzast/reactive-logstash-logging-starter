@@ -1,6 +1,5 @@
 package com.szastarek.reactive.logging.starter.config;
 
-import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.core.net.ssl.KeyStoreFactoryBean;
 import ch.qos.logback.core.net.ssl.SSLConfiguration;
@@ -11,12 +10,17 @@ import net.logstash.logback.encoder.LogstashEncoder;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Optional;
+
+import static org.slf4j.Logger.ROOT_LOGGER_NAME;
+
 @Configuration
+@ConstructorBinding
 @ConfigurationProperties(prefix = "logging.logstash")
 public class ReactiveSpringLoggingAutoConfiguration {
 
@@ -45,72 +49,59 @@ public class ReactiveSpringLoggingAutoConfiguration {
 	@ConditionalOnProperty("logging.logstash.enabled")
 	public LogstashTcpSocketAppender logstashAppender() {
 		LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+		LogstashEncoder encoder = getLogstashEncoder(loggerContext);
 		LogstashTcpSocketAppender logstashTcpSocketAppender = new LogstashTcpSocketAppender();
 		logstashTcpSocketAppender.setName(LOGSTASH_APPENDER_NAME);
 		logstashTcpSocketAppender.setContext(loggerContext);
 		logstashTcpSocketAppender.addDestination(url);
-		if (trustStoreLocation != null) {
-			SSLConfiguration sslConfiguration = new SSLConfiguration();
-			KeyStoreFactoryBean factory = new KeyStoreFactoryBean();
-			factory.setLocation(trustStoreLocation);
-			if (trustStorePassword != null)
-				factory.setPassword(trustStorePassword);
-			sslConfiguration.setTrustStore(factory);
-			logstashTcpSocketAppender.setSsl(sslConfiguration);
-		}
+		logstashTcpSocketAppender.setEncoder(encoder);
+		logstashTcpSocketAppender.start();
+		getSSLConfiguration().ifPresent(logstashTcpSocketAppender::setSsl);
+		loggerContext.getLogger(ROOT_LOGGER_NAME).addAppender(logstashTcpSocketAppender);
+		return logstashTcpSocketAppender;
+	}
+
+	private LogstashEncoder getLogstashEncoder(LoggerContext loggerContext) {
 		LogstashEncoder encoder = new LogstashEncoder();
 		encoder.setContext(loggerContext);
 		encoder.setIncludeContext(true);
 		encoder.setCustomFields("{\"appname\":\"" + name + "\"}");
 		encoder.start();
-		logstashTcpSocketAppender.setEncoder(encoder);
-		logstashTcpSocketAppender.start();
-		loggerContext.getLogger(Logger.ROOT_LOGGER_NAME).addAppender(logstashTcpSocketAppender);
-		return logstashTcpSocketAppender;
+		return encoder;
 	}
 
-	public String getUrl() {
-		return url;
+	private Optional<SSLConfiguration> getSSLConfiguration() {
+		if (trustStoreLocation != null) {
+			SSLConfiguration sslConfiguration = new SSLConfiguration();
+			KeyStoreFactoryBean factory = new KeyStoreFactoryBean();
+			factory.setLocation(trustStoreLocation);
+			if (trustStorePassword != null) {
+				factory.setPassword(trustStorePassword);
+			}
+			sslConfiguration.setTrustStore(factory);
+			return Optional.of(sslConfiguration);
+		}
+		return Optional.empty();
 	}
 
 	public void setUrl(String url) {
 		this.url = url;
 	}
 
-	public String getIgnorePatterns() {
-		return ignorePatterns;
-	}
-
 	public void setIgnorePatterns(String ignorePatterns) {
 		this.ignorePatterns = ignorePatterns;
-	}
-
-	public boolean isLogHeaders() {
-		return logHeaders;
 	}
 
 	public void setLogHeaders(boolean logHeaders) {
 		this.logHeaders = logHeaders;
 	}
 
-	public boolean isUseContentLength() {
-		return useContentLength;
-	}
-
 	public void setUseContentLength(boolean useContentLength) {
 		this.useContentLength = useContentLength;
 	}
 
-	public String getTrustStoreLocation() {
-		return trustStoreLocation;
-	}
-
 	public void setTrustStoreLocation(String trustStoreLocation) {
 		this.trustStoreLocation = trustStoreLocation;
-	}
-
-	public String getTrustStorePassword() {
-		return trustStorePassword;
 	}
 
 	public void setTrustStorePassword(String trustStorePassword) {

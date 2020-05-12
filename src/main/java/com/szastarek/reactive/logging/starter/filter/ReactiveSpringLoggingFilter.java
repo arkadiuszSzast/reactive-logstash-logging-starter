@@ -21,12 +21,13 @@ import static net.logstash.logback.argument.StructuredArguments.value;
 public class ReactiveSpringLoggingFilter implements WebFilter {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveSpringLoggingFilter.class);
-	private UniqueIDGenerator generator;
-	private String ignorePatterns;
-	private boolean logHeaders;
-	private boolean useContentLength;
+	private final UniqueIDGenerator generator;
+	private final String ignorePatterns;
+	private final boolean logHeaders;
+	private final boolean useContentLength;
 
-	public ReactiveSpringLoggingFilter(UniqueIDGenerator generator, String ignorePatterns, boolean logHeaders, boolean useContentLength) {
+	public ReactiveSpringLoggingFilter(UniqueIDGenerator generator, String ignorePatterns,
+									   boolean logHeaders, boolean useContentLength) {
 		this.generator = generator;
 		this.ignorePatterns = ignorePatterns;
 		this.logHeaders = logHeaders;
@@ -42,12 +43,13 @@ public class ReactiveSpringLoggingFilter implements WebFilter {
 			final long startTime = System.currentTimeMillis();
 			List<String> header = exchange.getRequest().getHeaders().get("Content-Length");
 			if (useContentLength && (header == null || header.get(0).equals("0"))) {
-				if (logHeaders)
+				if (logHeaders) {
 					LOGGER.info("Request: method={}, uri={}, headers={}, audit={}", exchange.getRequest().getMethod(),
 							exchange.getRequest().getURI().getPath(), exchange.getRequest().getHeaders(), value("audit", true));
-				else
+				} else {
 					LOGGER.info("Request: method={}, uri={}, audit={}", exchange.getRequest().getMethod(),
 							exchange.getRequest().getURI().getPath(), value("audit", true));
+				}
 			}
 			ServerWebExchangeDecorator exchangeDecorator = new ServerWebExchangeDecorator(exchange) {
 				@Override
@@ -61,12 +63,9 @@ public class ReactiveSpringLoggingFilter implements WebFilter {
 				}
 			};
 			return chain.filter(exchangeDecorator)
-					.doOnSuccess(aVoid -> {
-						logResponse(startTime, exchangeDecorator.getResponse(), exchangeDecorator.getResponse().getStatusCode().value());
-					})
-					.doOnError(throwable -> {
-						logResponse(startTime, exchangeDecorator.getResponse(), 500);
-					});
+					.doOnSuccess(aVoid -> logResponse(startTime, exchangeDecorator.getResponse(),
+							exchangeDecorator.getResponse().getStatusCode().value()))
+					.doOnError(throwable -> logResponse(startTime, exchangeDecorator.getResponse(), 500));
 		}
 	}
 
@@ -74,12 +73,13 @@ public class ReactiveSpringLoggingFilter implements WebFilter {
 		final long duration = System.currentTimeMillis() - startTime;
 		List<String> header = response.getHeaders().get("Content-Length");
 		if (useContentLength && (header == null || header.get(0).equals("0"))) {
-			if (logHeaders)
+			if (logHeaders) {
 				LOGGER.info("Response({} ms): status={}, headers={}, audit={}", value("X-Response-Time", duration),
 						value("X-Response-Status", overriddenStatus), response.getHeaders(), value("audit", true));
-			else
+			} else {
 				LOGGER.info("Response({} ms): status={}, audit={}", value("X-Response-Time", duration),
 						value("X-Response-Status", overriddenStatus), value("audit", true));
+			}
 		}
 	}
 
