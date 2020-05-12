@@ -2,4 +2,4 @@ jdk:
   - openjdk11
 install:
   - echo "Running a custom install command"
-  - ./mvnw clean install
+  - ./mvnw clean install -P release
