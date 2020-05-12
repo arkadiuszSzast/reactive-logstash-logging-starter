@@ -3,6 +3,7 @@ package com.szastarek.reactive.logging.starter.filter;
 
 import com.szastarek.reactive.logging.starter.interceptor.RequestLoggingInterceptor;
 import com.szastarek.reactive.logging.starter.interceptor.ResponseLoggingInterceptor;
+import com.szastarek.reactive.logging.starter.util.StatusCodeExtractor;
 import com.szastarek.reactive.logging.starter.util.UniqueIDGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,13 +64,12 @@ public class ReactiveSpringLoggingFilter implements WebFilter {
 				}
 			};
 			return chain.filter(exchangeDecorator)
-					.doOnSuccess(aVoid -> logResponse(startTime, exchangeDecorator.getResponse(),
-							exchangeDecorator.getResponse().getStatusCode().value()))
-					.doOnError(throwable -> logResponse(startTime, exchangeDecorator.getResponse(), 500));
+					.doFinally(aVoid -> logResponse(startTime, exchangeDecorator.getResponse(),
+							StatusCodeExtractor.extractStatusCode(exchangeDecorator.getResponse().getStatusCode())));
 		}
 	}
 
-	private void logResponse(long startTime, ServerHttpResponse response, int overriddenStatus) {
+	private void logResponse(long startTime, ServerHttpResponse response, String overriddenStatus) {
 		final long duration = System.currentTimeMillis() - startTime;
 		List<String> header = response.getHeaders().get("Content-Length");
 		if (useContentLength && (header == null || header.get(0).equals("0"))) {

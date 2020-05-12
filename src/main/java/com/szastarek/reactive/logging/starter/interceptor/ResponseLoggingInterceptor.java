@@ -1,5 +1,6 @@
 package com.szastarek.reactive.logging.starter.interceptor;
 
+import com.szastarek.reactive.logging.starter.util.StatusCodeExtractor;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,10 +39,10 @@ public class ResponseLoggingInterceptor extends ServerHttpResponseDecorator {
 				String bodyRes = new String(baos.toByteArray(), StandardCharsets.UTF_8);
 				if (logHeaders) {
 					LOGGER.info("Response({} ms): status={}, headers={}, payload={}, audit={}", value("X-Response-Time", System.currentTimeMillis() - startTime),
-							value("X-Response-Status", getStatusCode().value()), getDelegate().getHeaders(), bodyRes, value("audit", true));
+							value("X-Response-Status", StatusCodeExtractor.extractStatusCode(getStatusCode())), getDelegate().getHeaders(), bodyRes, value("audit", true));
 				} else {
 					LOGGER.info("Response({} ms): status={}, payload={}, audit={}", value("X-Response-Time", System.currentTimeMillis() - startTime),
-							value("X-Response-Status", getStatusCode().value()), bodyRes, value("audit", true));
+							value("X-Response-Status", StatusCodeExtractor.extractStatusCode(getStatusCode())), bodyRes, value("audit", true));
 				}
 			} catch (IOException e) {
 				LOGGER.error(e.getMessage());
